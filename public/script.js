@@ -1,45 +1,80 @@
 const socket = io('/')
 const videoGrid = document.getElementById('video-grid')
-const myvideogrid=document.getElementById('self')
+const myvideogrid = document.getElementById('self')
+const chat = document.getElementById('chat-box')
+const messages=document.getElementById('messages')
 let mystream;
-const myPeer = new Peer(undefined, {
-  host: '/',
-  port: '3001'
-})
+const myPeer = new Peer()
 const myVideo = document.createElement('video') 
 myVideo.muted = true
 const peers = {}
-navigator.mediaDevices.getUserMedia({
-  video: true,
-  audio: true
-}).then(stream => {
-  addVideoStreammine(myVideo, stream)
-  mystream=stream
-  myPeer.on('call', call => {
-    console.log("request id: ",myPeer.id)
-    call.answer(stream)
-    const video = document.createElement('video')
-    call.on('stream', userVideoStream => {
-      addVideoStream(video, userVideoStream)
-    })
-    call.on('close',()=>{
-      video.remove()
-    })
-  })
 
-  socket.on('user-connected', userId => {
-    console.log("User Connected " + userId)
-    setTimeout(connectToNewUser,10000,userId,stream)
-  })
+myPeer.on('open', id => {
+  console.log(id)
+  socket.emit('join-room', ROOM_ID, id)
+  getmedia()  
 })
+
+const onactive = () => {
+  socket.emit('gotpermission')
+}
+const getmedia = function () {
+  navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: true
+  
+  }).then(stream => {
+
+    onactive()
+    if (stream.getVideoTracks().length == 0) {
+       document.getElementById("svideo").innerHTML = "No Video source";
+    }
+    if (stream.getAudioTracks().length == 0) {
+       document.getElementById("mute").innerHTML = "No audio source";
+    }
+    addVideoStreammine(myVideo, stream)
+    mystream = stream
+    myPeer.on('call', call => {
+      console.log("request id: ", myPeer.id)
+      call.answer(stream)
+      const video = document.createElement('video')
+      call.on('stream', userVideoStream => {
+        addVideoStream(video, userVideoStream)
+      })
+      call.on('close', () => {
+        video.remove()
+      })
+      
+    
+    })
+   socket.on('user-connected', userId => {
+      console.log("User Connected " + userId)
+      connectToNewUser(userId, stream)
+    })
+    socket.on('message', (mes) => {
+      shower(mes)
+    })
+    socket.on('share-screen', (screenid, userId) => {
+      const cal = myPeer.call(screenid, stream)
+      v = document.createElement('video')
+      cal.on('stream', (s) => {
+        addVideoStream(v, s)
+      })
+      cal.on('close', () => {
+        v.remove()
+      })
+    })
+
+  })
+}
+
 
 socket.on('user-disconnected', userId => {
   if (peers[userId]) peers[userId].close()
 })
 
-myPeer.on('open', id => {
-  socket.emit('join-room', ROOM_ID, id)
-})
+
+
 
 function connectToNewUser(userId, stream) {
   const call = myPeer.call(userId, stream)
@@ -84,72 +119,100 @@ function timer()
      },1000)}
  
 const playstop = () => {
-      let enabled = mystream.getVideoTracks()[0].enabled;
-      if (enabled) {
-        mystream.getVideoTracks()[0].enabled = false;
-      } else {
-        mystream.getVideoTracks()[0].enabled = true;
-      }
+  if (mystream.getVideoTracks().length > 0) {
+  
+    let enabled = mystream.getVideoTracks()[0].enabled;
+    if (enabled) {
+      mystream.getVideoTracks()[0].enabled = false;
+      document.getElementById("svideo").innerHTML = "Show Video";
+      
+    } else {
+      mystream.getVideoTracks()[0].enabled = true;
+      document.getElementById("svideo").innerHTML = "Hide Video";
+    }
+  } else {
+     document.getElementById("svideo").innerHTML = "No Video source";
+  }
     };
     
 const muteunmute = () => {
-      const enabled = mystream.getAudioTracks()[0].enabled;
-      if (enabled) {
-        mystream.getAudioTracks()[0].enabled = false;
-      } else {
-        mystream.getAudioTracks()[0].enabled = true;
-      }
-    };
-    setInterval(()=>
-    {console.log(1)
-      var size=mystream.getAudioTracks().length
-      var sizevideo=mystream.getVideoTracks().length
-      if(sizevideo==0)
-      {
-        videochecker();
-      }
-      else
-      {
-        const videoenabled=mystream.getVideoTracks()[0].enabled;
-        if(videoenabled)
-        {
-          setStopVideo();
-        }
-        else
-        {
-          setPlayVideo();
-     
-        }
-      }
-      if(size==0)
-      {audiochecker();}
-      else{
-      const enabled = mystream.getAudioTracks()[0].enabled;
-     
-      if(enabled){setMuteButton();}
-      else setUnmuteButton();}
-    },100)
+  if (mystream.getAudioTracks().length > 0) {
     
-const setPlayVideo = () => {
-      document.getElementById("svideo").innerHTML = "Show Video";
-    };
-const setStopVideo = () => {
-      document.getElementById("svideo").innerHTML = "Hide Video";
-    };
-const audiochecker=()=>
-{
-  document.getElementById("mute").innerHTML = "No Audio Device Found!";
-    
-};
-const videochecker=()=>
-{
-  document.getElementById("svideo").innerHTML = "No Video Device Found!";
-    
-};
-
-const setUnmuteButton = () => {
+    const enabled = mystream.getAudioTracks()[0].enabled;
+    if (enabled) {
+        
+      mystream.getAudioTracks()[0].enabled = false;
       document.getElementById("mute").innerHTML = "Unmute";
-    };
-const setMuteButton = () => {
+
+    } else {
+        
+      mystream.getAudioTracks()[0].enabled = true;
       document.getElementById("mute").innerHTML = "Mute";
+       
+    }
+  } else {
+     document.getElementById("mute").innerHTML = "No audio source";
+  }
     };
+
+
+const message = () => {
+  div=document.createElement('div')
+  div.innerHTML = chat.value;
+  div.className = "message"
+  div.setAttribute('align', 'right')
+  messages.appendChild(div)
+ socket.emit('message',chat.value)
+}
+const shower = (mes) => {
+  div=document.createElement('div')
+  div.innerHTML = mes;
+  div.className = "message"
+  div.setAttribute('align','left')
+  messages.appendChild(div)
+
+}
+var display_remove = 0;
+let nPeer;
+let screenshare
+
+const displayscreen = () => {
+  if (display_remove == 0) {
+    display_remove = 1
+    nPeer = new Peer()
+    
+    navigator.mediaDevices.getDisplayMedia(
+      {
+        video: true,
+        audio: true
+      }
+    ).then((stream) => {
+      screenshare=stream
+      socket.emit('share-screen', nPeer.id)
+      nPeer.on('call', (call) => {
+        
+        call.answer(stream)
+      })
+
+      document.getElementById('share_screen').innerHTML = ('Stop sharing screen')
+      stream.oninactive = function () {
+
+        console.log('ended')
+        document.getElementById('share_screen').innerHTML = ('share screen')
+        nPeer.destroy()
+        display_remove=0
+  };
+
+
+    })
+  } else {
+  
+    display_remove = 0
+    document.getElementById('share_screen').innerHTML = ('share screen')
+    let all_tracks=screenshare.getTracks()
+    all_tracks.forEach(track => track.stop());
+ 
+   
+  }
+
+}

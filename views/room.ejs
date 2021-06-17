@@ -22,24 +22,47 @@
 			<p style="margin-left:1%; margin-top:1%;float:left;font-weight: bold;">Video Caller</p>
 			<p id="timer" style="margin-right:1%; margin-top:1%;float:right;font-weight: bold;">Active Time: 0 seconds</p>
 		</div>
+		<div class="two-boxes">
+			<div class="box1">
 	    <div class="grid">
 		<div id="video-grid"></div>
 		 </div>
 		 <div class="bottombox">
 	  
 		
-<div onclick="copier()" id="button">Link</div>
+<button onclick="copier()" id="button">Link</button>
 		
 			
-<div onclick="playstop()" id="svideo">Show Video</div>
+<button onclick="playstop()" id="svideo">Hide Video</button>
 	
 		
-<div onclick="muteunmute()" id="mute">Mute</div>
+<button onclick="muteunmute()" id="mute">Mute</button>
+
+<button onclick="displayscreen()" id="share_screen">share screen</button>
 		
 			<div id="self">
 
 		</div>  
 		</div>
+		</div>
+		<div class="box2">
+		
+				<div class="sender">
+        <input id="chat-box">
+		
+		</input>
+	  	<button  class="btn">
+            <div onclick="message()">send</div> 
+		</button>
+	
+		</div>
+		<div id="messages">
+	  <center><h3 class="message">Chat Box</h3></center>
+		</div>
+		</div>
+			</div>
+		
+
 		
 		</div>
 	</body>
