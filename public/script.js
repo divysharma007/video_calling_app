@@ -8,7 +8,8 @@ const myPeer = new Peer()
 const myVideo = document.createElement('video') 
 myVideo.muted = true
 const peers = {}
-
+var screenshare = null
+var nPeer;
 myPeer.on('open', id => {
   console.log(id)
   socket.emit('join-room', ROOM_ID, id)
@@ -47,14 +48,17 @@ const getmedia = function () {
       
     
     })
-   socket.on('user-connected', userId => {
+    socket.on('user-connected', userId => {
       console.log("User Connected " + userId)
-      connectToNewUser(userId, stream)
+      connectToNewUser(myPeer, userId, stream)
+      if (screenshare != null) {
+      connectstreamToNewUser(nPeer,userId,screenshare)
+      }
     })
     socket.on('message', (mes) => {
       shower(mes)
     })
-    socket.on('share-screen', (screenid, userId) => {
+    socket.on('share-screen', (screenid) => {
       const cal = myPeer.call(screenid, stream)
       v = document.createElement('video')
       cal.on('stream', (s) => {
@@ -69,6 +73,7 @@ const getmedia = function () {
 }
 
 
+
 socket.on('user-disconnected', userId => {
   if (peers[userId]) peers[userId].close()
 })
@@ -76,17 +81,27 @@ socket.on('user-disconnected', userId => {
 
 
 
-function connectToNewUser(userId, stream) {
-  const call = myPeer.call(userId, stream)
+function connectToNewUser(mypeer,userId, stream) {
+  const call = mypeer.call(userId, stream)
   const video = document.createElement('video')
-  call.on('stream', userVideoStream => {
-    addVideoStream(video, userVideoStream)
-  })
+
+    call.on('stream', userVideoStream => {
+      addVideoStream(video, userVideoStream)
+    })
+  
   call.on('close', () => {
     video.remove()
   })
 
   peers[userId] = call
+}
+function connectstreamToNewUser(mypeer,userId, stream) {
+  const call = mypeer.call(userId, stream)
+  const video = document.createElement('video')
+  call.on('close', () => {
+    video.remove()
+  })
+
 }
 
 function addVideoStream(video, stream) {
@@ -173,13 +188,14 @@ const shower = (mes) => {
 
 }
 var display_remove = 0;
-let nPeer;
-let screenshare
+
+
 
 const displayscreen = () => {
   if (display_remove == 0) {
     display_remove = 1
     nPeer = new Peer()
+    
     
     navigator.mediaDevices.getDisplayMedia(
       {
@@ -187,8 +203,9 @@ const displayscreen = () => {
         audio: true
       }
     ).then((stream) => {
-      screenshare=stream
-      socket.emit('share-screen', nPeer.id)
+      screenshare = stream
+      console.log(screenshare)
+      socket.emit('share-screen',nPeer.id)
       nPeer.on('call', (call) => {
         
         call.answer(stream)

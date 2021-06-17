@@ -18,16 +18,20 @@ server.listen(3000, () => {
 app.get('/:room', (req, res) => {
   res.render('room', { roomId: req.params.room })
 })
+
 io.on('connection', socket => {
   socket.on('join-room', (roomId, userId) => {
     socket.join(roomId)
     socket.on('gotpermission', () => {
     socket.to(roomId).broadcast.emit('user-connected', userId)
+   
     })
   
     
-    socket.on('share-screen', (screenid) => {
-      socket.to(roomId).broadcast.emit('share-screen', screenid, userId)
+    socket.on('share-screen', (peerid) => {
+      console.log(peerid)
+      
+      socket.to(roomId).broadcast.emit('share-screen',peerid)
       console.log('screen broadcasted')
     })
     
